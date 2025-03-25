@@ -1,0 +1,52 @@
+body {
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.grid-container {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(5, 60px); /* 預設為 7x7，會根據 JS 更新 */
+    grid-template-rows: repeat(5, 60px);
+    gap: 2px;
+    background-color: #f0f0f0;
+    padding: 5px;
+    border: 1px solid black;
+}
+
+
+.cell {
+    width: 60px;
+    height: 60px;
+    border: 1px solid black;
+    text-align: center;
+    font-size: 14px;
+    line-height: 60px;
+    overflow: hidden;
+}
+
+.start {
+    background-color: green;
+    color: white;
+    font-weight: bold;
+}
+
+.end {
+    background-color: red;
+    color: white;
+    font-weight: bold;
+}
+
+.obstacle {
+    background-color: gray;
+    color: white;
+    font-weight: bold;
+}
+
+.agent { background-color: blue; }
+
