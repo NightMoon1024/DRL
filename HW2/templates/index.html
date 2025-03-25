@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gridworld Value Iteration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        let gridSize = 5;
+        let start = [0, 0];
+        let end = [gridSize - 1, gridSize - 1];
+        let obstacles = [];
+
+        function setGridSize() {
+            gridSize = parseInt(document.getElementById("grid-size").value);
+            start = [0, 0];
+            end = [gridSize - 1, gridSize - 1];
+            obstacles = [];
+            updateGrid();
+        }
+        function updateGridSize() {
+            document.querySelectorAll(".grid").forEach(grid => {
+                grid.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
+                grid.style.gridTemplateRows = `repeat(${gridSize}, 60px)`;
+            });
+        }
+
+        function handleClick(i, j) {
+            // 如果是起點或終點，不允許直接點擊
+            if ((start[0] === i && start[1] === j) || (end[0] === i && end[1] === j)) return;
+
+            // 依據目前的選擇模式來決定設定哪個元素
+            let mode = document.querySelector('input[name="mode"]:checked').value;
+
+            if (mode === "start") {
+                start = [i, j]; // 設定新的起點
+            } else if (mode === "end") {
+                end = [i, j]; // 設定新的終點
+            } else if (mode === "obstacle") {
+                let index = obstacles.findIndex(ob => ob[0] === i && ob[1] === j);
+                if (index >= 0) {
+                    obstacles.splice(index, 1); // 取消障礙物
+                } else if (obstacles.length < gridSize - 2) {
+                    obstacles.push([i, j]); // 設定新的障礙物
+                }
+            }
+
+            updateGrid(); // 更新 Flask 後端，重新計算最佳策略
+        }
+
+        function updateGrid() {
+            updateGridSize();  // 確保 Grid 大小正確
+            fetch('/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ grid_size: gridSize, start, end, obstacles })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("API Response:", data);
+                renderGrids(data.values, data.policy);
+            });
+        }
+
+
+        function renderGrid(id, start, end, obstacles) {
+            let grid = document.getElementById(id);
+            grid.innerHTML = "";
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    let cell = document.createElement("div");
+                    cell.className = "cell";
+                    cell.onclick = () => handleClick(i, j); // 讓使用者可以點擊變更
+
+                    if (start[0] === i && start[1] === j) {
+                        cell.classList.add("start");
+                        cell.innerText = "S";
+                    } else if (end[0] === i && end[1] === j) {
+                        cell.classList.add("end");
+                        cell.innerText = "E";
+                    } else if (obstacles.some(ob => ob[0] === i && ob[1] === j)) {
+                        cell.classList.add("obstacle");
+                        cell.innerText = "X";
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+        }
+        
+        function renderValueGrid(values) {
+            let grid = document.getElementById("value-grid");
+            grid.innerHTML = "";
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    let cell = document.createElement("div");
+                    cell.className = "cell";
+                    cell.innerText = values[i][j].toFixed(2);  // 確保 V(s) 有數字顯示
+                    grid.appendChild(cell);
+                }
+            }
+            console.log("Value Grid Updated", values); // Debug Log
+        }
+        
+        function renderPolicyGrid(policy) {
+            let grid = document.getElementById("policy-grid");
+            grid.innerHTML = "";
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    let cell = document.createElement("div");
+                    cell.className = "cell";
+                    cell.innerText = policy[i][j];  // 顯示箭頭符號 (↑ ↓ ← →)
+                    grid.appendChild(cell);
+                }
+            }
+            console.log("Policy Grid Updated", policy); // Debug Log
+        }
+
+
+        function renderGrids(values, policy) {
+            console.log("Updating grids...");
+            console.log("Values:", values);
+            console.log("Policy:", policy);
+
+            renderGrid('initial-grid', start, end, obstacles);
+            renderValueGrid(values);
+            renderPolicyGrid(policy);
+            renderAnimationGrid();
+        }
+
+        function renderAnimationGrid() {
+            let grid = document.getElementById("animation-grid");
+            grid.innerHTML = "";
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    let cell = document.createElement("div");
+                    cell.className = "cell";
+
+                    if (start[0] === i && start[1] === j) {
+                        cell.classList.add("start");
+                        cell.innerText = "S";
+                    } else if (end[0] === i && end[1] === j) {
+                        cell.classList.add("end");
+                        cell.innerText = "E";
+                    } else if (obstacles.some(ob => ob[0] === i && ob[1] === j)) {
+                        cell.classList.add("obstacle");
+                        cell.innerText = "X";
+                    }
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+
+        function startAnimation() {
+            let agentPos = [...start];
+            function moveAgent() {
+                let index = agentPos[0] * gridSize + agentPos[1];
+                let action = document.getElementById("policy-grid").children[index].innerText;
+                let movements = { "↑": [-1, 0], "↓": [1, 0], "←": [0, -1], "→": [0, 1] };
+                if (action in movements) {
+                    let [dx, dy] = movements[action];
+                    agentPos[0] += dx;
+                    agentPos[1] += dy;
+                    let newIndex = agentPos[0] * gridSize + agentPos[1];
+                    document.getElementById("animation-grid").children[newIndex].classList.add("agent");
+                    if (agentPos[0] === end[0] && agentPos[1] === end[1]) return;
+                    setTimeout(moveAgent, 100);
+                }
+            }
+            moveAgent();
+        }
+
+        window.onload = updateGrid;
+    </script>
+</head>
+<body>
+    <h1>Gridworld Value Iteration</h1>
+    <label for="grid-size">選擇網格大小 (5~9):</label>
+    <select id="grid-size" onchange="setGridSize()">
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+    </select>
+    <h3>請選擇設定模式：</h3>
+    <label><input type="radio" name="mode" value="start" checked> 設定起點 (S) </label>
+    <label><input type="radio" name="mode" value="end"> 設定終點 (E) </label>
+    <label><input type="radio" name="mode" value="obstacle"> 設定障礙物 (X) </label>
+    <button onclick="startAnimation()">播放最佳策略動畫</button>
+    <div class="grid-container">
+        <div><h3>初始網格</h3><div id="initial-grid" class="grid"></div></div>
+        <div><h3>價值函數</h3><div id="value-grid" class="grid"></div></div>
+        <div><h3>最佳政策</h3><div id="policy-grid" class="grid"></div></div>
+        <div><h3>最佳路徑動畫</h3><div id="animation-grid" class="grid"></div></div>
+    </div>
+</body>
+</html>
