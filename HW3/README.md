@@ -20,13 +20,14 @@
 
 ---
 
-"""## 📁 專案結構
+## 📁 專案結構
 
+```
 HW3/
-├── report.tex             # LaTeX 原始報告檔
-├── report.pdf             # 編譯後報告 PDF（最終提交版本）
-├── main.py                # Python 程式碼：模擬四種 MAB 策略
-├── plots/                 # 所有策略圖表結果
+├── report.tex                 # LaTeX 原始報告檔
+├── report.pdf                 # 編譯後報告 PDF（最終提交版本）
+├── main.py                    # Python 程式碼：模擬四種 MAB 策略
+├── plots/                     # 所有策略圖表結果
 │   ├── epsilon_greedy_reward.png
 │   ├── epsilon_greedy_explore.png
 │   ├── epsilon_greedy_armcount.png
@@ -40,7 +41,9 @@ HW3/
 │   ├── thompson_explore.png
 │   ├── thompson_armcount.png
 │   └── mab_comparison.png
-└── README.md              # 本說明文件"""
+└── README.md                  # 本說明文件
+```
+
 
 ---
 
